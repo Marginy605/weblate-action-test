@@ -166,11 +166,11 @@ describe('resolveComponents', () => {
 
             const result = await resolveComponents(keysetsPath, mainLanguage);
 
-            // The parent directory is extracted as pathParts[pathParts.length - 2]
-            // For 'projects/project-a/src/i18n-keysets', that would be 'src'
+            // The parent directory is extracted from the path after 'projects'
+            // For 'projects/project-a/src/i18n-keysets', that would be 'project-a'
             expect(result).toEqual([
                 {
-                    name: 'src_component1',
+                    name: 'project-a_component1',
                     source: path.join(
                         'projects/project-a/src/i18n-keysets',
                         'component1',
@@ -183,7 +183,7 @@ describe('resolveComponents', () => {
                     ),
                 },
                 {
-                    name: 'src_component2',
+                    name: 'project-b_component2',
                     source: path.join(
                         'projects/project-b/src/i18n-keysets',
                         'component2',
@@ -212,9 +212,9 @@ describe('resolveComponents', () => {
             const result = await resolveComponents(keysetsPath, mainLanguage);
 
             expect(result).toHaveLength(3);
-            expect(result[0].name).toBe('src_component1');
-            expect(result[1].name).toBe('src_component2');
-            expect(result[2].name).toBe('src_component3');
+            expect(result[0].name).toBe('project-a_component1');
+            expect(result[1].name).toBe('project-a_component2');
+            expect(result[2].name).toBe('project-a_component3');
         });
 
         it('should filter out hidden directories in glob pattern', async () => {
@@ -230,7 +230,7 @@ describe('resolveComponents', () => {
             const result = await resolveComponents(keysetsPath, mainLanguage);
 
             expect(result).toHaveLength(1);
-            expect(result[0].name).toBe('src_component1');
+            expect(result[0].name).toBe('project-a_component1');
         });
 
         it('should handle errors when reading glob-matched directories', async () => {
@@ -257,7 +257,7 @@ describe('resolveComponents', () => {
 
             // Should still return components from successful directory
             expect(result).toHaveLength(1);
-            expect(result[0].name).toBe('src_component1');
+            expect(result[0].name).toBe('project-a_component1');
 
             // Should log warning for failed directory
             expect(consoleWarnSpy).toHaveBeenCalledWith(

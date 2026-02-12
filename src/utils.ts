@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
-import path from 'path';
 import {glob} from 'glob';
+import path from 'path';
 
 export const sleep = (time: number) =>
     new Promise(resolve => setTimeout(resolve, time));
@@ -54,11 +54,15 @@ export const resolveComponents = async (
                 });
 
                 // Извлекаем имя родительской директории для префикса
-                // Например: projects/project-a/src/i18n-keysets -> project-a
+                // Например: projects/yandex/src/i18n-keysets -> yandex
                 const pathParts = dir.split(path.sep);
+                // Находим индекс 'projects' и берем следующий элемент
+                const projectsIndex = pathParts.indexOf('projects');
                 const parentDirName =
-                    pathParts[pathParts.length - 2] ||
-                    path.basename(path.dirname(dir));
+                    projectsIndex !== -1 && projectsIndex + 1 < pathParts.length
+                        ? pathParts[projectsIndex + 1]
+                        : pathParts[pathParts.length - 2] ||
+                          path.basename(path.dirname(dir));
 
                 const dirComponents = dirents
                     .filter(
@@ -76,6 +80,10 @@ export const resolveComponents = async (
                 components.push(...dirComponents);
                 console.log(
                     `  ✅ ${dir}: found ${dirComponents.length} component(s)`,
+                );
+                console.log(
+                    `  📋 Components:`,
+                    dirComponents.map(c => c.name).join(', '),
                 );
             } catch (error) {
                 console.warn(`  ⚠️ Failed to read directory ${dir}:`, error);
