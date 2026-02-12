@@ -1,14 +1,14 @@
-import {ActionMode, Configuration, getConfiguration} from './config';
-import {Weblate} from './lib/weblate';
-import {resolveComponents} from './utils';
 import {setFailed} from '@actions/core';
 import {context, getOctokit} from '@actions/github';
+import {ActionMode, Configuration, getConfiguration} from './config';
 import {
     getComponentRepositoryErrors,
     getUntranslatedComponentsError,
     pullRemoteChanges,
     removeMissingComponents,
 } from './lib/logic';
+import {Weblate} from './lib/weblate';
+import {resolveComponents} from './utils';
 
 type HandlerArgs = {
     config: Configuration;
@@ -123,6 +123,10 @@ const validatePullRequest = async ({config, weblate}: HandlerArgs) => {
         `${config.branchName}__${config.pullRequestNumber}`,
     );
 
+    console.log(
+        `✅ Created branch ${config.branchName}__${config.pullRequestNumber}`,
+    );
+
     // If the category was recently created, then we need to copy components from master branch
     if (categoryWasRecentlyCreated) {
         const masterCategory = await weblate.findCategoryForBranch(
@@ -158,6 +162,8 @@ const validatePullRequest = async ({config, weblate}: HandlerArgs) => {
             ),
         );
 
+        console.log(`✅ Created components`);
+
         // Wait repository update
         await weblate.waitComponentsTasks({
             componentNames: createdComponents.map(({name}) => name),
@@ -190,6 +196,10 @@ const validatePullRequest = async ({config, weblate}: HandlerArgs) => {
     );
     const [firstComponent, ...otherComponents] = componentsInCode;
 
+    console.log(
+        `✅ Resolved components in code ${config.keysetsPath}, ${config.mainLanguage}`,
+    );
+
     // Creating first component for feature branch
     const firstWeblateComponent = await weblate.createComponent({
         name: `${firstComponent.name}__${config.pullRequestNumber}`,
@@ -204,6 +214,8 @@ const validatePullRequest = async ({config, weblate}: HandlerArgs) => {
         pullRequestNumber: config.pullRequestNumber,
         updateIfExist: categoryWasRecentlyCreated,
     });
+
+    console.log(`✅ Created components`);
 
     // Creating other components with a link to the first component
     const createComponentsPromises = otherComponents.map(component =>
