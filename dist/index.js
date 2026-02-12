@@ -38202,7 +38202,6 @@ var slugify = (name) => (0, import_kebabCase.default)(name);
 
 // src/utils.ts
 var import_promises2 = __toESM(require("fs/promises"));
-var import_path = __toESM(require("path"));
 
 // node_modules/glob/dist/esm/index.min.js
 var import_node_url = require("node:url");
@@ -41493,6 +41492,7 @@ var Ze = Object.assign(Je, { glob: Je, globSync: ts, sync: Bi, globStream: Qe, s
 Ze.glob = Ze;
 
 // src/utils.ts
+var import_path = __toESM(require("path"));
 var sleep = (time) => new Promise((resolve) => setTimeout(resolve, time));
 var resolveComponents = async (keysetsPath, mainLanguage) => {
   const components = [];
@@ -41514,7 +41514,8 @@ var resolveComponents = async (keysetsPath, mainLanguage) => {
           withFileTypes: true
         });
         const pathParts = dir.split(import_path.default.sep);
-        const parentDirName = pathParts[pathParts.length - 2] || import_path.default.basename(import_path.default.dirname(dir));
+        const projectsIndex = pathParts.indexOf("projects");
+        const parentDirName = projectsIndex !== -1 && projectsIndex + 1 < pathParts.length ? pathParts[projectsIndex + 1] : pathParts[pathParts.length - 2] || import_path.default.basename(import_path.default.dirname(dir));
         const dirComponents = dirents.filter(
           (dirent) => dirent.isDirectory() && !dirent.name.startsWith(".")
         ).map(({ name }) => ({
@@ -41526,6 +41527,10 @@ var resolveComponents = async (keysetsPath, mainLanguage) => {
         components.push(...dirComponents);
         console.log(
           `  \u2705 ${dir}: found ${dirComponents.length} component(s)`
+        );
+        console.log(
+          `  \u{1F4CB} Components:`,
+          dirComponents.map((c) => c.name).join(", ")
         );
       } catch (error) {
         console.warn(`  \u26A0\uFE0F Failed to read directory ${dir}:`, error);
