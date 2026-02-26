@@ -25,22 +25,18 @@ const syncMaster = async ({config, weblate}: HandlerArgs) => {
         wasRecentlyCreated: categoryWasRecentlyCreated,
     } = await weblate.createCategoryForBranch(config.branchName);
 
+    // Pull remote changes from git with merge-conflict validation (single pull)
     if (!categoryWasRecentlyCreated) {
-        const weblateComponents = await weblate.getComponentsInCategory({
+        const {mergeFailureMessage} = await pullRemoteChanges({
+            weblate,
+            config,
             categoryId,
+            categorySlug,
         });
-        const mainComponent = weblateComponents.find(
-            ({linked_component}) => !linked_component,
-        );
-        if (mainComponent) {
-            await weblate.pullComponentRemoteChanges({
-                name: mainComponent.name,
-                categorySlug,
-            });
-            await weblate.waitComponentsTasks({
-                componentNames: weblateComponents.map(({name}) => name),
-                categorySlug,
-            });
+
+        if (mergeFailureMessage) {
+            setFailed(mergeFailureMessage);
+            return;
         }
     }
 
@@ -82,23 +78,15 @@ const syncMaster = async ({config, weblate}: HandlerArgs) => {
         }),
     );
 
-    const otherWeblateComponents = await Promise.all(createComponentsPromises);
+    await Promise.all(createComponentsPromises);
 
-    // Pulling changes to weblate from remote repository
-    if (!categoryWasRecentlyCreated) {
-        await weblate.pullComponentRemoteChanges({
-            name: mainComponent.name,
-            categorySlug,
-        });
-    }
-
-    const weblateComponents = [
-        firstWeblateComponent,
-        ...otherWeblateComponents,
-    ];
-
+    // Wait for ALL components in the category (both newly created and pre-existing),
+    // so that no component is still locked when removeMissingComponents runs
+    const allWeblateComponents = await weblate.getComponentsInCategory({
+        categoryId,
+    });
     await weblate.waitComponentsTasks({
-        componentNames: weblateComponents.map(({name}) => name),
+        componentNames: allWeblateComponents.map(({name}) => name),
         categorySlug,
     });
 
@@ -109,6 +97,36 @@ const syncMaster = async ({config, weblate}: HandlerArgs) => {
         categorySlug,
         componentsInCode,
     });
+
+    // Check repository state after full sync and surface any issues
+    const repositoryErrors = await getComponentRepositoryErrors({
+        name: mainComponent.name,
+        categorySlug,
+        config,
+        weblate,
+    });
+
+    if (repositoryErrors.mergeFailureError) {
+        setFailed(repositoryErrors.mergeFailureError);
+        return;
+    }
+
+    if (repositoryErrors.needsCommitError) {
+        console.warn(
+            '⚠️ SYNC_MASTER: Weblate main branch has uncommitted changes. ' +
+                'Translators may be actively working on the branch.',
+        );
+    }
+
+    if (repositoryErrors.needsPushError) {
+        setFailed(
+            'SYNC_MASTER: Weblate main branch has unpushed commits. ' +
+                'This typically happens when a source string was changed and Weblate ' +
+                'auto-committed formatting or flag changes via an addon (e.g. weblate.json.customize). ' +
+                'These commits must be pushed to the repository before PR validation will work correctly. ' +
+                'Push Weblate changes manually or trigger a push via the Weblate UI.',
+        );
+    }
 };
 
 const validatePullRequest = async ({config, weblate}: HandlerArgs) => {
