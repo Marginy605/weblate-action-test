@@ -25,13 +25,23 @@ const syncMaster = async ({config, weblate}: HandlerArgs) => {
         slug: categorySlug,
         wasRecentlyCreated: categoryWasRecentlyCreated,
     } = await weblate.createCategoryForBranch(config.branchName);
-    console.log('\n✅ createCategoryForBranch done \ncategoryId:', categoryId, '\nslug:', categorySlug, '\nwasRecentlyCreated:', categoryWasRecentlyCreated);
+    console.log(
+        '\n✅ createCategoryForBranch done \ncategoryId:',
+        categoryId,
+        '\nslug:',
+        categorySlug,
+        '\nwasRecentlyCreated:',
+        categoryWasRecentlyCreated,
+    );
     if (!categoryWasRecentlyCreated) {
         console.log('\ngetComponentsInCategory');
         const weblateComponents = await weblate.getComponentsInCategory({
             categoryId,
         });
-        console.log('\n✅ getComponentsInCategory done \nweblateComponents:', weblateComponents);
+        console.log(
+            '\n✅ getComponentsInCategory done \nweblateComponents:',
+            weblateComponents,
+        );
         const mainComponent = weblateComponents.find(
             ({linked_component}) => !linked_component,
         );
@@ -56,9 +66,17 @@ const syncMaster = async ({config, weblate}: HandlerArgs) => {
         config.keysetsPath,
         config.mainLanguage,
     );
-    console.log('\n✅ resolveComponents done \ncomponentsInCode:', componentsInCode);
+    console.log(
+        '\n✅ resolveComponents done \ncomponentsInCode:',
+        componentsInCode,
+    );
     const [firstComponent, ...otherComponents] = componentsInCode;
-    console.log('\nfirstComponent:', firstComponent, '\notherComponents:', otherComponents);
+    console.log(
+        '\nfirstComponent:',
+        firstComponent,
+        '\notherComponents:',
+        otherComponents,
+    );
     // Creating first component for master branch
     const firstWeblateComponent = await weblate.createComponent({
         name: firstComponent.name,
@@ -71,7 +89,10 @@ const syncMaster = async ({config, weblate}: HandlerArgs) => {
         repoForUpdates: config.gitRepo,
         applyAddons: 'main-branch',
     });
-    console.log('\n✅ createComponent done \nfirstWeblateComponent:', firstWeblateComponent);
+    console.log(
+        '\n✅ createComponent done \nfirstWeblateComponent:',
+        firstWeblateComponent,
+    );
     const mainComponent =
         (await weblate.getMainComponentInCategory({
             categoryId,
@@ -94,7 +115,9 @@ const syncMaster = async ({config, weblate}: HandlerArgs) => {
     console.log('\notherWeblateComponents:', otherWeblateComponents);
     // Pulling changes to weblate from remote repository
     if (!categoryWasRecentlyCreated) {
-        console.log('\n!categoryWasRecentlyCreated, pullComponentRemoteChanges');
+        console.log(
+            '\n!categoryWasRecentlyCreated, pullComponentRemoteChanges',
+        );
         await weblate.pullComponentRemoteChanges({
             name: mainComponent.name,
             categorySlug,
