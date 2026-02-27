@@ -42161,34 +42161,62 @@ var Weblate = class {
 
 // src/index.ts
 var syncMaster = async ({ config, weblate }) => {
+  console.log("\nsyncMaster");
   const {
     id: categoryId,
     slug: categorySlug,
     wasRecentlyCreated: categoryWasRecentlyCreated
   } = await weblate.createCategoryForBranch(config.branchName);
+  console.log(
+    "\n\u2705 createCategoryForBranch done \ncategoryId:",
+    categoryId,
+    "\nslug:",
+    categorySlug,
+    "\nwasRecentlyCreated:",
+    categoryWasRecentlyCreated
+  );
   if (!categoryWasRecentlyCreated) {
+    console.log("\ngetComponentsInCategory");
     const weblateComponents2 = await weblate.getComponentsInCategory({
       categoryId
     });
+    console.log(
+      "\n\u2705 getComponentsInCategory done \nweblateComponents:",
+      weblateComponents2
+    );
     const mainComponent2 = weblateComponents2.find(
       ({ linked_component }) => !linked_component
     );
+    console.log("\n\u2705 mainComponent found:", mainComponent2);
     if (mainComponent2) {
+      console.log("\npullComponentRemoteChanges");
       await weblate.pullComponentRemoteChanges({
         name: mainComponent2.name,
         categorySlug
       });
+      console.log("\n\u2705 pullComponentRemoteChanges done");
       await weblate.waitComponentsTasks({
         componentNames: weblateComponents2.map(({ name }) => name),
         categorySlug
       });
+      console.log("\n\u2705 waitComponentsTasks done");
     }
   }
   const componentsInCode = await resolveComponents(
     config.keysetsPath,
     config.mainLanguage
   );
+  console.log(
+    "\n\u2705 resolveComponents done \ncomponentsInCode:",
+    componentsInCode
+  );
   const [firstComponent, ...otherComponents] = componentsInCode;
+  console.log(
+    "\nfirstComponent:",
+    firstComponent,
+    "\notherComponents:",
+    otherComponents
+  );
   const firstWeblateComponent = await weblate.createComponent({
     name: firstComponent.name,
     fileMask: firstComponent.fileMask,
@@ -42200,9 +42228,14 @@ var syncMaster = async ({ config, weblate }) => {
     repoForUpdates: config.gitRepo,
     applyAddons: "main-branch"
   });
+  console.log(
+    "\n\u2705 createComponent done \nfirstWeblateComponent:",
+    firstWeblateComponent
+  );
   const mainComponent = await weblate.getMainComponentInCategory({
     categoryId
   }) ?? firstWeblateComponent;
+  console.log("\n\u2705 mainComponent found:", mainComponent);
   const createComponentsPromises = otherComponents.map(
     (component) => weblate.createComponent({
       name: component.name,
@@ -42215,7 +42248,11 @@ var syncMaster = async ({ config, weblate }) => {
     })
   );
   const otherWeblateComponents = await Promise.all(createComponentsPromises);
+  console.log("\notherWeblateComponents:", otherWeblateComponents);
   if (!categoryWasRecentlyCreated) {
+    console.log(
+      "\n!categoryWasRecentlyCreated, pullComponentRemoteChanges"
+    );
     await weblate.pullComponentRemoteChanges({
       name: mainComponent.name,
       categorySlug
@@ -42225,10 +42262,12 @@ var syncMaster = async ({ config, weblate }) => {
     firstWeblateComponent,
     ...otherWeblateComponents
   ];
+  console.log("\nweblateComponents:", weblateComponents);
   await weblate.waitComponentsTasks({
     componentNames: weblateComponents.map(({ name }) => name),
     categorySlug
   });
+  console.log("\n\u2705 waitComponentsTasks done");
   await removeMissingComponents({
     config,
     weblate,
